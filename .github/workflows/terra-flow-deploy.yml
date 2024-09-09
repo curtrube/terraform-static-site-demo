@@ -1,7 +1,7 @@
 name: Deploy with terra-flow
 
 env:
-  terraform_root_dir: terraform-demo
+  terraform_root_dir: terraform
   terraform_version: 1.9
   aws_account_prefix: app
 
