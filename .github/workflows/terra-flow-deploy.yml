@@ -1,0 +1,60 @@
+name: Deploy with terra-flow
+
+env:
+  terraform_root_dir: terraform-demo
+  terraform_version: 1.9
+  aws_account_prefix: app
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Terraform action
+        required: true
+        type: choice
+        default: plan
+        options:
+          - plan
+          - apply
+          - destroy
+          - unlock
+      environment:
+        description: Environment
+        required: true
+        type: choice
+        default: dev
+        options:
+          - dev
+          - prod
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  get-env-vars:
+    runs-on: ubuntu-latest
+    steps:
+    - id: get-env-vars
+      run: |
+        echo "terraform_root_dir"=${{ env.terraform_root_dir }} >> $GITHUB_OUTPUT
+        echo "terraform_version"=${{ env.terraform_version }} >> $GITHUB_OUTPUT
+        echo "value=`basename ${{ github.repository }}`" >> $GITHUB_OUTPUT
+        echo "aws_account_prefix"=${{ env.aws_account_prefix }} >> $GITHUB_OUTPUT
+    outputs:
+      terraform_root_directory: ${{ steps.get-env-vars.outputs.terraform_root_dir }}
+      terraform_version: ${{ steps.get-env-vars.outputs.terraform_version }}
+      terraform_workspace: ${{ steps.get-env-vars.outputs.value }}
+      aws_account_prefix: ${{ steps.get-env-vars.outputs.aws_account_prefix }}
+
+  terra-flow:
+    name: terra-flow-${{ inputs.action }}
+    uses: curtrube/terra-flow/.github/workflows/terra-flow-action.yml@main
+    needs: get-env-vars
+    with:
+      terraform_action: ${{ inputs.action }}
+      terraform_version: ${{ needs.get-env-vars.outputs.terraform_version }}
+      terraform_workspace: ${{ needs.get-env-vars.outputs.terraform_workspace }}
+      terraform_directory: ${{ needs.get-env-vars.outputs.terraform_root_directory }}
+      environment: ${{ inputs.environment }}
+      aws_account_prefix: ${{ needs.get-env-vars.outputs.aws_account_prefix }}
